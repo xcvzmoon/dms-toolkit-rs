@@ -1,1 +1,5 @@
 /target
+node_modules
+
+# NAPI compiled binaries (platform-specific)
+napi/*.node

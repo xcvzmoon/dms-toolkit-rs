@@ -2,12 +2,24 @@
   "name": "dms-toolkit-rs",
   "version": "1.0.0",
   "description": "DMS Toolkit",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "napi build --platform --release --output-dir ./napi",
+    "build:debug": "napi build --platform --output-dir ./napi",
+    "start": "tsx examples/index.ts",
+    "dev": "tsx --watch examples/index.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.24.0"
+  "packageManager": "pnpm@10.24.0",
+  "devDependencies": {
+    "@napi-rs/cli": "^3.5.0",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0"
+  },
+  "napi": {
+    "binaryName": "dms-toolkit-rs",
+    "triples": {}
+  }
 }

@@ -3,5 +3,10 @@ name = "dms-toolkit-rs"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 chardetng = "0.1.17"
+napi = "3.6.1"
+napi-derive = "3.4.0"

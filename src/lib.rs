@@ -4,16 +4,20 @@ use models::file::{FileInput, FileMetadata, GroupedFiles};
 use chardetng::EncodingDetector;
 use std::collections::HashMap;
 
+use napi_derive::napi;
+
+#[napi]
 pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
     let mut grouped: HashMap<String, Vec<FileMetadata>> = HashMap::new();
 
     for file in files {
-        let size = file.content.len() as u64;
-        let encoding = detect_encoding(&file.content, &file.mime_type);
+        let content = file.content.as_ref();
+        let size = content.len() as f64;
+        let encoding = detect_encoding(content, &file.mime_type);
         let metadata = FileMetadata {
             name: file.filename,
             size,
-            processing_time_ms: 0,
+            processing_time_ms: 0.0,
             encoding,
         };
 
