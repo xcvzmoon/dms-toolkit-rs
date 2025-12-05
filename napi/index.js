@@ -572,4 +572,5 @@ if (!nativeBinding) {
 }
 
 module.exports = nativeBinding
+module.exports.extractTextContent = nativeBinding.extractTextContent
 module.exports.processFiles = nativeBinding.processFiles

@@ -1,4 +1,7 @@
+mod core;
 mod models;
+
+use core::text::{decode_text, is_mime_type_text};
 use models::file::{FileInput, FileMetadata, GroupedFiles};
 
 use chardetng::EncodingDetector;
@@ -14,11 +17,19 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
         let content = file.content.as_ref();
         let size = content.len() as f64;
         let encoding = detect_encoding(content, &file.mime_type);
+
+        let text_content = if is_mime_type_text(&file.mime_type) {
+            decode_text(content, &encoding)
+        } else {
+            String::new()
+        };
+
         let metadata = FileMetadata {
             name: file.filename,
             size,
             processing_time_ms: 0.0,
             encoding,
+            text_content,
         };
 
         grouped
@@ -34,7 +45,7 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
 }
 
 fn detect_encoding(content: &[u8], mime_type: &str) -> String {
-    if is_text_mime_type(mime_type) {
+    if is_mime_type_text(mime_type) {
         let mut detector = EncodingDetector::new();
         detector.feed(content, true);
         let encoding = detector.guess(None, true);
@@ -42,18 +53,4 @@ fn detect_encoding(content: &[u8], mime_type: &str) -> String {
     } else {
         "application/octet-stream".to_string()
     }
-}
-
-fn is_text_mime_type(mime_type: &str) -> bool {
-    mime_type.starts_with("text/")
-        || matches!(
-            mime_type,
-            "application/json"
-                | "application/xml"
-                | "application/javascript"
-                | "application/typescript"
-                | "application/x-javascript"
-                | "application/xhtml+xml"
-                | "application/ld+json"
-        )
 }

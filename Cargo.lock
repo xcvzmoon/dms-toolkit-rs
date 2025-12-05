@@ -55,6 +55,7 @@ name = "dms-toolkit-rs"
 version = "0.1.0"
 dependencies = [
  "chardetng",
+ "encoding_rs",
  "napi",
  "napi-derive",
 ]

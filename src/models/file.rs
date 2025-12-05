@@ -14,6 +14,7 @@ pub struct FileMetadata {
     pub size: f64,
     pub processing_time_ms: f64,
     pub encoding: String,
+    pub text_content: String,
 }
 
 #[napi(object)]

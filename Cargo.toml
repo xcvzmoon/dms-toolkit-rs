@@ -8,5 +8,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 chardetng = "0.1.17"
+encoding_rs = "0.8.35"
 napi = "3.6.1"
 napi-derive = "3.4.0"
