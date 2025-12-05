@@ -1,6 +1,15 @@
-import { processFiles } from '../napi';
+/**
+ * M1/8Gb Testing Environment
+ *
+ * Without Content Extraction: > 1_000_000 files
+ * With Content Extraction (text files): < 300_000 files
+ */
 
-const files = Array(1_000_000)
+import { processFiles, extractTextContent } from '../napi';
+
+const LENGTH = 10;
+
+const files = Array(LENGTH)
   .fill(null)
   .map((_, i) => ({
     content: Buffer.from(`
@@ -43,6 +52,21 @@ for (const file of processedFiles) {
   }
 }
 
-console.log('Files: 1,000,000');
-console.log(`Total: ${(sum / 1_000_000_000).toFixed(2)} GB`);
-console.log(`Processed: ${end.toFixed(2)}s`);
+function formatBytes(bytes: number): string {
+  const KB = 1_000;
+  const MB = 1_000_000;
+  const GB = 1_000_000_000;
+
+  if (bytes < MB) {
+    return `${(bytes / KB).toFixed(2)} KB`;
+  } else if (bytes < GB) {
+    return `${(bytes / MB).toFixed(2)} MB`;
+  } else {
+    return `${(bytes / GB).toFixed(2)} GB`;
+  }
+}
+
+console.log(`Files: ${LENGTH}`);
+console.log(`Total: ${formatBytes(sum)}`);
+console.log(`Processed: ${end.toFixed(5)}s`);
+console.log(extractTextContent(files[0].content, files[0].mimeType));
