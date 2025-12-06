@@ -1,5 +1,6 @@
 /**
  * M1/8Gb Testing Environment
+ * This is without workers
  *
  * Without Content Extraction: > 1_000_000 files
  * With Content Extraction (text files): < 300_000 files
