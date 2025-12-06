@@ -1,13 +1,11 @@
 mod core;
 mod models;
 
+use chardetng::EncodingDetector;
 use core::text::{decode_text, is_mime_type_text};
 use models::file::{FileInput, FileMetadata, GroupedFiles};
-
-use chardetng::EncodingDetector;
-use std::collections::HashMap;
-
 use napi_derive::napi;
+use std::collections::HashMap;
 
 #[napi]
 pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
