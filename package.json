@@ -6,6 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "napi build --platform --release --output-dir ./napi",
     "build:debug": "napi build --platform --output-dir ./napi",
+    "format": "cargo fmt",
     "start": "tsx examples/index.ts",
     "dev": "tsx --watch examples/index.ts"
   },
