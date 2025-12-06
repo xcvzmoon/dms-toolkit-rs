@@ -3,6 +3,7 @@ mod handlers;
 mod models;
 
 use crate::core::handler::FileHandler;
+use crate::handlers::docx::DocxHandler;
 use crate::handlers::pdf::PdfHandler;
 use crate::handlers::text::TextHandler;
 
@@ -14,8 +15,11 @@ use std::sync::Arc;
 
 #[napi]
 pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
-    let handlers: Vec<Arc<dyn FileHandler>> =
-        vec![Arc::new(TextHandler::new()), Arc::new(PdfHandler::new())];
+    let handlers: Vec<Arc<dyn FileHandler>> = vec![
+        Arc::new(TextHandler::new()),
+        Arc::new(PdfHandler::new()),
+        Arc::new(DocxHandler::new()),
+    ];
 
     let grouped: DashMap<String, Vec<FileMetadata>> = DashMap::new();
 

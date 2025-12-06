@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 chardetng = "0.1.17"
 dashmap = "6.1.0"
+docx-rs = "0.4.18"
 encoding_rs = "0.8.35"
 napi = "3.6.1"
 napi-derive = "3.4.0"
