@@ -1,8 +1,9 @@
 mod core;
+mod handlers;
 mod models;
 
-use chardetng::EncodingDetector;
-use core::text::{decode_text, is_mime_type_text};
+use crate::core::handler::FileHandler;
+use crate::handlers::text::TextHandler;
 use models::file::{FileInput, FileMetadata, GroupedFiles};
 use napi_derive::napi;
 use std::collections::HashMap;
@@ -10,16 +11,23 @@ use std::collections::HashMap;
 #[napi]
 pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
     let mut grouped: HashMap<String, Vec<FileMetadata>> = HashMap::new();
+    let text_handler = TextHandler::new();
+    let handlers: Vec<Box<dyn FileHandler>> = vec![Box::new(text_handler)];
 
     for file in files {
         let content = file.content.as_ref();
         let size = content.len() as f64;
-        let encoding = detect_encoding(content, &file.mime_type);
+        let handler = handlers.iter().find(|h| h.can_handle(&file.mime_type));
 
-        let text_content = if is_mime_type_text(&file.mime_type) {
-            decode_text(content, &encoding)
-        } else {
-            String::new()
+        let (text_content, encoding) = match handler {
+            Some(h) => match h.extract_text(content, &file.filename, &file.mime_type) {
+                Ok(text) => {
+                    let enc = detect_encoding_for_metadata(content, &file.mime_type);
+                    (text, enc)
+                }
+                Err(err) => (format!("Error: {}", err), "error".to_string()),
+            },
+            None => (String::new(), "application/octet-stream".to_string()),
         };
 
         let metadata = FileMetadata {
@@ -32,7 +40,7 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
 
         grouped
             .entry(file.mime_type.clone())
-            .or_insert_with(|| Vec::new())
+            .or_insert_with(Vec::new)
             .push(metadata);
     }
 
@@ -42,7 +50,10 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
         .collect()
 }
 
-fn detect_encoding(content: &[u8], mime_type: &str) -> String {
+fn detect_encoding_for_metadata(content: &[u8], mime_type: &str) -> String {
+    use crate::core::text::is_mime_type_text;
+    use chardetng::EncodingDetector;
+
     if is_mime_type_text(mime_type) {
         let mut detector = EncodingDetector::new();
         detector.feed(content, true);
