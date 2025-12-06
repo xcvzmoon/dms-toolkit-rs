@@ -3,20 +3,26 @@ mod handlers;
 mod models;
 
 use crate::core::handler::FileHandler;
+use crate::handlers::pdf::PdfHandler;
 use crate::handlers::text::TextHandler;
+
+use dashmap::DashMap;
 use models::file::{FileInput, FileMetadata, GroupedFiles};
 use napi_derive::napi;
-use std::collections::HashMap;
+use rayon::prelude::*;
+use std::sync::Arc;
 
 #[napi]
 pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
-    let mut grouped: HashMap<String, Vec<FileMetadata>> = HashMap::new();
-    let text_handler = TextHandler::new();
-    let handlers: Vec<Box<dyn FileHandler>> = vec![Box::new(text_handler)];
+    let handlers: Vec<Arc<dyn FileHandler>> =
+        vec![Arc::new(TextHandler::new()), Arc::new(PdfHandler::new())];
 
-    for file in files {
+    let grouped: DashMap<String, Vec<FileMetadata>> = DashMap::new();
+
+    files.par_iter().for_each(|file| {
         let content = file.content.as_ref();
         let size = content.len() as f64;
+
         let handler = handlers.iter().find(|h| h.can_handle(&file.mime_type));
 
         let (text_content, encoding) = match handler {
@@ -31,7 +37,7 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
         };
 
         let metadata = FileMetadata {
-            name: file.filename,
+            name: file.filename.clone(),
             size,
             processing_time_ms: 0.0,
             encoding,
@@ -42,7 +48,7 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
             .entry(file.mime_type.clone())
             .or_insert_with(Vec::new)
             .push(metadata);
-    }
+    });
 
     grouped
         .into_iter()
