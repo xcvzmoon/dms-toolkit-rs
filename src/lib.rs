@@ -3,9 +3,11 @@ mod handlers;
 mod models;
 
 use crate::core::handler::FileHandler;
+
 use crate::handlers::docx::DocxHandler;
 use crate::handlers::pdf::PdfHandler;
 use crate::handlers::text::TextHandler;
+use crate::handlers::xlsx::XlsxHandler;
 
 use dashmap::DashMap;
 use models::file::{FileInput, FileMetadata, GroupedFiles};
@@ -19,6 +21,7 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
         Arc::new(TextHandler::new()),
         Arc::new(PdfHandler::new()),
         Arc::new(DocxHandler::new()),
+        Arc::new(XlsxHandler::new()),
     ];
 
     let grouped: DashMap<String, Vec<FileMetadata>> = DashMap::new();
