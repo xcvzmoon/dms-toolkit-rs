@@ -2,6 +2,8 @@
 
 A high-performance file processing toolkit built with Rust and exposed to Node.js via NAPI-RS. Extract text content from various file formats with parallel processing for optimal performance.
 
+> **Note**: This project was created as a learning exercise to explore Rust and its integration with TypeScript. As such, this may not be the best library implementation, and the code may not be optimized or well-structured. Additionally, AI assistance was used for the majority of the development work.
+
 ## Features
 
 - 🚀 **High Performance**: Parallel file processing using Rayon
@@ -24,11 +26,10 @@ A high-performance file processing toolkit built with Rust and exposed to Node.j
 - **Text Files** (`text/plain`): Full support with encoding detection
 - **PDF Files** (`application/pdf`): Text extraction implemented
 - **DOCX Files** (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`): Text extraction implemented
-
-### 🚧 Planned / Not Yet Implemented
-
 - **XLSX Files** (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`): Excel spreadsheet support
 - **CSV Files** (`text/csv`): Comma-separated values file support
+
+### 🚧 Planned / Not Yet Implemented
 - **Image Files**: Support for extracting text from images (OCR) for formats like:
   - PNG (`image/png`)
   - JPEG (`image/jpeg`)
