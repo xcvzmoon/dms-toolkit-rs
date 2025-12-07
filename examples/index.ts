@@ -103,6 +103,13 @@ const fileConfigs: ProcessFileTypeConfig[] = [
     filenameExtension: 'csv',
     label: 'CSV Files',
   },
+  {
+    filePath: './examples/files/image.png',
+    mimeType: 'image/png',
+    filenamePrefix: 'image',
+    filenameExtension: 'png',
+    label: 'Image Files',
+  },
 ];
 
 fileConfigs.forEach(processFileType);
