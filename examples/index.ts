@@ -16,10 +16,9 @@ function formatBytes(bytes: number): string {
 }
 
 function calculateTotalSize(processedFiles: GroupedFiles[]): number {
-  return processedFiles.reduce(
-    (total, file) => total + file.files.reduce((sum, metadata) => sum + metadata.size, 0),
-    0,
-  );
+  return processedFiles.reduce((total, file) => {
+    return total + file.files.reduce((sum, metadata) => sum + metadata.size, 0);
+  }, 0);
 }
 
 function showResult(length: number, sum: number, end: number): void {
@@ -55,6 +54,17 @@ function processFileType(config: ProcessFileTypeConfig): void {
 
   console.log(`\n${label}:`);
   showResult(count, totalSize, end);
+
+  processedFiles.forEach((group) => {
+    if (group.files.length > 0) {
+      const firstFile = group.files[0];
+      console.log(
+        `First ${group.mimeType} content: ${firstFile.textContent.substring(0, 200)}${
+          firstFile.textContent.length > 200 ? '...' : ''
+        }`,
+      );
+    }
+  });
 }
 
 const fileConfigs: ProcessFileTypeConfig[] = [
@@ -78,6 +88,20 @@ const fileConfigs: ProcessFileTypeConfig[] = [
     filenamePrefix: 'word',
     filenameExtension: 'docx',
     label: 'Docx Files',
+  },
+  {
+    filePath: './examples/files/spreadsheet.xlsx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    filenamePrefix: 'excel',
+    filenameExtension: 'xlsx',
+    label: 'Excel Files',
+  },
+  {
+    filePath: './examples/files/csv.csv',
+    mimeType: 'text/csv',
+    filenamePrefix: 'csv',
+    filenameExtension: 'csv',
+    label: 'CSV Files',
   },
 ];
 
