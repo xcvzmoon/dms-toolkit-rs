@@ -1,6 +1,30 @@
 # Changelog
 
 
+## v0.2.1
+
+[compare changes](https://github.com/xcvzmoon/dms-toolkit-rs/compare/v0.2.0...v0.2.1)
+
+### 🚀 Enhancements
+
+- Add support for xlsx files ([7e53cc0](https://github.com/xcvzmoon/dms-toolkit-rs/commit/7e53cc0))
+- Add simple documentation ([b2b5f39](https://github.com/xcvzmoon/dms-toolkit-rs/commit/b2b5f39))
+
+### 🏡 Chore
+
+- Remove dead_code attribute ([cf9cffe](https://github.com/xcvzmoon/dms-toolkit-rs/commit/cf9cffe))
+- Support csv for text-based files ([8054845](https://github.com/xcvzmoon/dms-toolkit-rs/commit/8054845))
+- Update the examples ([5970740](https://github.com/xcvzmoon/dms-toolkit-rs/commit/5970740))
+- Update bindingPackageVersion ([fc7270a](https://github.com/xcvzmoon/dms-toolkit-rs/commit/fc7270a))
+- Refactor text handler ([4ec113e](https://github.com/xcvzmoon/dms-toolkit-rs/commit/4ec113e))
+- Cleanup ([83d6bf2](https://github.com/xcvzmoon/dms-toolkit-rs/commit/83d6bf2))
+- Rebuild napi ([c85ed35](https://github.com/xcvzmoon/dms-toolkit-rs/commit/c85ed35))
+- Update readme ([2d15e06](https://github.com/xcvzmoon/dms-toolkit-rs/commit/2d15e06))
+
+### ❤️ Contributors
+
+- Mon Albert Gamil <mrgamilmonalbert@gmail.com>
+
 ## v0.2.0
 
 
