@@ -20,6 +20,9 @@ impl TextHandler {
 impl FileHandler for TextHandler {
     fn can_handle(&self, mime_type: &str) -> bool {
         is_mime_type_text(mime_type)
+            || mime_type == "text/csv"
+            || mime_type == "text/tsv"
+            || mime_type == "text/tab-separated-values"
     }
 
     fn extract_text(
