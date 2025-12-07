@@ -4,12 +4,10 @@ use docx_rs::*;
 pub struct DocxHandler;
 
 impl DocxHandler {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self
     }
 
-    #[allow(dead_code)]
     fn extract_text_from_docx(&self, content: &[u8]) -> Result<String, String> {
         let docx = read_docx(&content).map_err(|e| format!("Failed to read DOCX: {}", e))?;
 
