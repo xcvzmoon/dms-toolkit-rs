@@ -20,6 +20,66 @@ use napi_derive::napi;
 use rayon::prelude::*;
 use std::sync::Arc;
 
+/// Processes an array of files and extracts text content from them.
+///
+/// This function takes a list of files with their MIME types and filenames,
+/// processes them in parallel using appropriate handlers, and returns the
+/// extracted text content grouped by MIME type.
+///
+/// # Supported File Types
+///
+/// - Text files (text/plain, text/csv, text/tsv, and other text-based MIME types)
+/// - PDF documents (application/pdf)
+/// - Microsoft Word documents (DOCX format)
+/// - Excel spreadsheets (XLSX format)
+/// - Images with OCR support (PNG, JPEG, GIF, BMP, TIFF, WebP)
+///
+/// # Processing Flow
+///
+/// 1. Initializes all available file handlers
+/// 2. For each file, finds the appropriate handler based on MIME type
+/// 3. Extracts text content using the handler's extraction logic
+/// 4. Groups results by MIME type for easy access
+/// 5. Returns grouped results with metadata for each file
+///
+/// # Parallel Processing
+///
+/// Files are processed in parallel using Rayon, which automatically utilizes
+/// all available CPU cores. This significantly improves performance when
+/// processing multiple files.
+///
+/// # Error Handling
+///
+/// If a file cannot be processed (no handler found, extraction fails, etc.),
+/// the function still includes it in the results with:
+/// - `encoding` set to "error" or "application/octet-stream"
+/// - `text_content` containing an error message or empty string
+///
+/// # Arguments
+///
+/// * `files` - A vector of `FileInput` objects containing file content, MIME type, and filename
+///
+/// # Returns
+///
+/// A vector of `GroupedFiles` objects, where each group contains files of the same MIME type
+/// along with their extracted text content and metadata.
+///
+/// # Example
+///
+/// ```no_run
+/// use dms_toolkit_rs::process_files;
+/// use dms_toolkit_rs::FileInput;
+///
+/// let files = vec![
+///     FileInput {
+///         content: vec![...], // PDF bytes
+///         mime_type: "application/pdf".to_string(),
+///         filename: "document.pdf".to_string(),
+///     }
+/// ];
+///
+/// let results = process_files(files);
+/// ```
 #[napi]
 pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
     let handlers: Vec<Arc<dyn FileHandler>> = vec![
@@ -66,6 +126,93 @@ pub fn process_files(files: Vec<FileInput>) -> Vec<GroupedFiles> {
         .collect()
 }
 
+/// Processes files and compares extracted text against reference documents.
+///
+/// This function extends `process_files` by adding similarity comparison capabilities.
+/// After extracting text from files, it compares each file's text content against
+/// a list of reference texts using configurable similarity algorithms.
+///
+/// # Similarity Algorithms
+///
+/// The function supports multiple similarity methods:
+///
+/// - **"jaccard"**: Fast word-based similarity using Jaccard index. Best for quick
+///   comparisons and initial filtering. Splits texts into words and calculates
+///   intersection over union.
+///
+/// - **"ngram"**: Character n-gram based similarity (uses 3-grams). Good for
+///   longer texts where word-based methods might miss character-level similarities.
+///
+/// - **"levenshtein"**: Edit distance based similarity. Calculates the minimum
+///   number of edits needed to transform one string into another. More accurate
+///   but slower for long texts.
+///
+/// - **"hybrid"** (default): Progressive filtering approach that combines multiple
+///   methods for optimal balance of speed and accuracy:
+///   1. Fast Jaccard check - if score < 20%, return immediately
+///   2. For small texts (< 1000 chars): Use Levenshtein with early termination
+///   3. For larger texts: Use N-gram similarity
+///
+/// # Processing Flow
+///
+/// 1. Processes files and extracts text content (same as `process_files`)
+/// 2. For each successfully extracted text:
+///    - Compares against all reference texts in parallel
+///    - Applies pre-filtering using length heuristics
+///    - Calculates similarity using the selected method
+///    - Filters results by threshold (only matches >= threshold are returned)
+/// 3. Returns grouped results with similarity match information
+///
+/// # Parallel Processing
+///
+/// Both file processing and similarity comparisons run in parallel:
+/// - Multiple files are processed simultaneously
+/// - Each file's text is compared against all reference texts in parallel
+/// - Pre-filtering helps avoid expensive calculations for dissimilar texts
+///
+/// # Arguments
+///
+/// * `files` - A vector of `FileInput` objects to process
+/// * `reference_texts` - A vector of reference text strings to compare against
+/// * `similarity_threshold` - Optional similarity threshold percentage (0-100).
+///   Defaults to 30.0. Only matches with similarity >= threshold are returned.
+/// * `similarity_method` - Optional similarity algorithm to use. Valid values:
+///   "jaccard", "ngram", "levenshtein", "hybrid" (default). Invalid values
+///   default to "hybrid".
+///
+/// # Returns
+///
+/// A vector of `GroupedFilesWithSimilarity` objects, where each group contains:
+/// - Files grouped by MIME type
+/// - Extracted text content and metadata
+/// - Similarity matches for each file (reference index and similarity percentage)
+///
+/// # Example
+///
+/// ```no_run
+/// use dms_toolkit_rs::process_and_compare_files;
+/// use dms_toolkit_rs::FileInput;
+///
+/// let files = vec![
+///     FileInput {
+///         content: vec![...], // PDF bytes
+///         mime_type: "application/pdf".to_string(),
+///         filename: "document.pdf".to_string(),
+///     }
+/// ];
+///
+/// let reference_texts = vec![
+///     "This is a reference document.".to_string(),
+///     "Another reference text.".to_string(),
+/// ];
+///
+/// let results = process_and_compare_files(
+///     files,
+///     reference_texts,
+///     Some(30.0),  // 30% threshold
+///     Some("hybrid".to_string()),  // Use hybrid method
+/// );
+/// ```
 #[napi]
 pub fn process_and_compare_files(
     files: Vec<FileInput>,
