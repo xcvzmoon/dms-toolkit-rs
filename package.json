@@ -9,6 +9,7 @@
     "format": "cargo fmt",
     "start": "tsx examples/index.ts",
     "dev": "tsx --watch examples/index.ts",
+    "with-tinypool": "tsx examples/with-tinypool.ts",
     "release": "pnpm dlx changelogen@latest --release"
   },
   "keywords": [],
@@ -23,5 +24,8 @@
   "napi": {
     "binaryName": "dms-toolkit-rs",
     "triples": {}
+  },
+  "dependencies": {
+    "tinypool": "^2.0.0"
   }
 }
