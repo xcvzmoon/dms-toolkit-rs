@@ -40,12 +40,14 @@ The codebase is organized into the following structure:
 src/
 ├── core/           # Core functionality and shared contracts
 │   ├── handler.rs  # The FileHandler trait definition
+│   ├── similarity.rs # Similarity comparison algorithms
 │   └── mod.rs      # Module declarations
 ├── handlers/       # Individual file type handlers
 │   ├── text.rs     # Text file handler
 │   ├── pdf.rs      # PDF file handler
 │   ├── docx.rs     # Word document handler
 │   ├── xlsx.rs     # Excel spreadsheet handler
+│   ├── image.rs    # Image file handler with OCR
 │   └── mod.rs      # Module declarations
 ├── models/         # Data structures
 │   ├── file.rs     # File input/output data structures
@@ -80,6 +82,7 @@ Each handler is a self-contained unit that:
    - PDF files: Use a PDF parsing library to extract text
    - Word documents: Parse the DOCX XML structure to extract text
    - Excel files: Read spreadsheet cells and convert to text
+   - Image files: Use OCR (Optical Character Recognition) to extract text from images
 
 ### Handler Lifecycle
 
@@ -107,6 +110,43 @@ The trait ensures that:
 - Any handler can check if it supports a file type
 - Any handler can extract text from supported files
 - Handlers can be used safely in parallel processing
+
+#### Similarity Module (`src/core/similarity.rs`)
+
+This module provides text similarity comparison algorithms used by the `process_and_compare_files` function. It implements multiple similarity methods:
+
+- **SimilarityMethod Enum**: Defines available similarity algorithms:
+  - `Jaccard`: Fast word-based similarity using Jaccard index
+  - `Ngram`: Character n-gram based similarity (uses 3-grams)
+  - `Levenshtein`: Edit distance based similarity
+  - `Hybrid`: Progressive filtering approach (default)
+
+- **Pre-filtering**: Uses length difference heuristics to quickly filter out obviously dissimilar texts before running expensive similarity calculations.
+
+- **Jaccard Similarity**: 
+  - Splits texts into words (lowercased)
+  - Calculates intersection over union of word sets
+  - Very fast, good for initial filtering
+
+- **N-gram Similarity**:
+  - Breaks texts into character n-grams (default: 3-grams)
+  - Calculates similarity based on shared n-grams
+  - Good for longer texts where word-based methods might miss character-level similarities
+
+- **Levenshtein Distance**:
+  - Calculates edit distance (minimum edits to transform one string to another)
+  - Optimized with early termination for efficiency
+  - Uses memory-efficient implementation (swaps shorter string as rows)
+  - Converts distance to similarity percentage
+
+- **Hybrid Similarity**:
+  - Progressive approach that combines multiple methods:
+    1. Fast Jaccard check - if score < 20%, return immediately
+    2. For small texts (< 1000 chars): Use Levenshtein with early termination
+    3. For larger texts: Use N-gram similarity
+  - Balances speed and accuracy
+
+- **Parallel Comparison**: The `compare_with_documents` function compares one text against multiple reference texts in parallel using Rayon, applying pre-filtering and threshold checks to return only matches above the specified threshold.
 
 ### Handlers Module (`src/handlers/`)
 
@@ -180,6 +220,38 @@ The `XlsxHandler` extracts text from Microsoft Excel spreadsheets (XLSX format).
 
 - **Output Formatting**: Separates sheets with double newlines and trims the final output.
 
+#### ImageHandler (`src/handlers/image.rs`)
+
+The `ImageHandler` extracts text from images using OCR (Optical Character Recognition). It:
+
+- **MIME Type Support**: Handles various image formats:
+  - `image/jpeg` / `image/jpg`: JPEG images
+  - `image/png`: PNG images
+  - `image/gif`: GIF images
+  - `image/bmp`: BMP images
+  - `image/tiff`: TIFF images
+  - `image/webp`: WebP images
+
+- **OCR Engine Initialization**: 
+  - Loads pre-trained OCR models (text detection and recognition models) at handler creation
+  - Uses the `ocrs` library with `rten` runtime for model execution
+  - Models are loaded from files in the project root: `text-detection-model.rten` and `text-recognition-model.rten`
+
+- **Image Processing Pipeline**:
+  1. **Image Loading**: Reads image bytes and decodes them using the `image` library
+  2. **Format Conversion**: Converts the image to RGB8 format for OCR processing
+  3. **Text Detection**: Uses the detection model to identify regions containing text (word bounding boxes)
+  4. **Text Line Finding**: Groups detected words into text lines
+  5. **Text Recognition**: Uses the recognition model to convert detected text regions into actual text strings
+  6. **Text Assembly**: Combines all recognized text lines with newlines
+
+- **Output Formatting**: 
+  - Returns extracted text with each line separated by newlines
+  - If no text is found, returns "No text found in image"
+  - Trims leading/trailing whitespace from the final output
+
+- **Error Handling**: Provides descriptive error messages for each stage of the OCR pipeline (image loading, decoding, OCR processing).
+
 ### Models Module (`src/models/`)
 
 The models module defines the data structures used for input and output.
@@ -204,18 +276,27 @@ This file defines three main data structures:
    - `mime_type`: The MIME type that groups these files
    - `files`: A list of `FileMetadata` objects for all files of this type
 
+4. **`FileMetadataWithSimilarity`**: Extends `FileMetadata` with similarity comparison results. Contains all fields from `FileMetadata` plus:
+   - `similarity_matches`: A list of `SimilarityMatch` objects representing matches above the threshold
+
+5. **`SimilarityMatch`**: Represents a similarity match between extracted text and a reference text. Contains:
+   - `reference_index`: The index of the reference text in the input array
+   - `similarity_percentage`: The similarity score as a percentage (0-100)
+
+6. **`GroupedFilesWithSimilarity`**: Similar to `GroupedFiles` but contains `FileMetadataWithSimilarity` objects instead of `FileMetadata`.
+
 These structures are marked with `#[napi(object)]`, which makes them available to Node.js through the NAPI bindings.
 
 ### Main Library (`src/lib.rs`)
 
-The main library file (`src/lib.rs`) is the entry point and orchestration layer. It coordinates all the components to process files.
+The main library file (`src/lib.rs`) is the entry point and orchestration layer. It coordinates all the components to process files and provides two main functions exposed to Node.js.
 
 #### The `process_files` Function
 
 This is the main function exposed to Node.js. It takes a list of `FileInput` objects and returns a list of `GroupedFiles`.
 
 **Initialization Phase**:
-1. Creates instances of all handlers (TextHandler, PdfHandler, DocxHandler, XlsxHandler)
+1. Creates instances of all handlers (DocxHandler, ImageHandler, PdfHandler, TextHandler, XlsxHandler)
 2. Wraps them in `Arc` (Atomically Reference Counted) containers, which allows safe sharing across threads
 3. Stores them in a list
 
@@ -238,11 +319,45 @@ For each file in the input list:
 1. Converts the grouped map into a list of `GroupedFiles` objects
 2. Returns the list
 
+#### The `process_and_compare_files` Function
+
+This function extends `process_files` by adding similarity comparison capabilities. It processes files and compares the extracted text against reference documents.
+
+**Parameters**:
+- `files`: Array of files to process
+- `reference_texts`: Array of reference text strings to compare against
+- `similarity_threshold`: Optional threshold percentage (default: 30.0) - only matches above this are returned
+- `similarity_method`: Optional algorithm selection (default: "hybrid")
+
+**Initialization Phase**:
+1. Parses the similarity method parameter (defaults to Hybrid if invalid)
+2. Creates handler instances (same as `process_files`)
+3. Initializes a thread-safe map for grouping results with similarity data
+
+**Processing Phase** (runs in parallel):
+For each file:
+1. **Text Extraction**: Same as `process_files` - extracts text using appropriate handler
+2. **Similarity Comparison**: If text was successfully extracted (not empty and not an error):
+   - Calls `compare_with_documents()` from the similarity module
+   - Compares extracted text against all reference texts in parallel
+   - Applies pre-filtering and threshold checks
+   - Returns matches above the threshold with their similarity percentages
+3. **Metadata Creation**: Creates a `FileMetadataWithSimilarity` object with:
+   - All fields from `FileMetadata`
+   - `similarity_matches`: Array of `SimilarityMatch` objects (reference index and similarity percentage)
+4. **Grouping**: Adds to thread-safe map grouped by MIME type
+
+**Output Phase**:
+1. Converts the grouped map into a list of `GroupedFilesWithSimilarity` objects
+2. Returns the list
+
 #### Parallel Processing
 
 The system uses `rayon` for parallel processing. The line `files.par_iter()` creates a parallel iterator, which processes multiple files simultaneously across available CPU cores. This significantly speeds up batch processing.
 
 The `DashMap` (a concurrent hash map) is used to safely collect results from parallel threads without data races.
+
+Similarity comparisons also run in parallel - when comparing one text against multiple reference texts, each comparison runs on a separate thread, and pre-filtering helps avoid expensive calculations for obviously dissimilar texts.
 
 ## Processing Flow
 
@@ -264,6 +379,7 @@ Here is the step-by-step flow of how a file is processed:
    - **PdfHandler**: Parses PDF structure, extracts and cleans text
    - **DocxHandler**: Parses DOCX XML, extracts text from paragraphs
    - **XlsxHandler**: Reads Excel sheets, converts cells to text
+   - **ImageHandler**: Uses OCR to detect and recognize text in images
 
 6. **Result Handling**: 
    - If extraction succeeds: The text is stored, and encoding is set to "utf-8" for metadata
