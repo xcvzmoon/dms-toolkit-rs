@@ -572,4 +572,5 @@ if (!nativeBinding) {
 }
 
 module.exports = nativeBinding
+module.exports.processAndCompareFiles = nativeBinding.processAndCompareFiles
 module.exports.processFiles = nativeBinding.processFiles

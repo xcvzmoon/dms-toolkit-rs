@@ -14,9 +14,30 @@ export interface FileMetadata {
   textContent: string
 }
 
+export interface FileMetadataWithSimilarity {
+  name: string
+  size: number
+  processingTimeMs: number
+  encoding: string
+  textContent: string
+  similarityMatches: Array<SimilarityMatch>
+}
+
 export interface GroupedFiles {
   mimeType: string
   files: Array<FileMetadata>
 }
 
+export interface GroupedFilesWithSimilarity {
+  mimeType: string
+  files: Array<FileMetadataWithSimilarity>
+}
+
+export declare function processAndCompareFiles(files: Array<FileInput>, referenceTexts: Array<string>, similarityThreshold?: number | undefined | null, similarityMethod?: string | undefined | null): Array<GroupedFilesWithSimilarity>
+
 export declare function processFiles(files: Array<FileInput>): Array<GroupedFiles>
+
+export interface SimilarityMatch {
+  referenceIndex: number
+  similarityPercentage: number
+}
